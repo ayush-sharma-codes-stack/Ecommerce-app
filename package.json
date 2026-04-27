@@ -9,7 +9,7 @@
     "server": "cd api && npm run dev",
     "client": "cd client && npm run dev",
     "dev": "npx concurrently \"npm run server\" \"npm run client\"",
-    "build": "cd client && npm install --legacy-peer-deps && npm run build"
+    "build": "cd client && npm install --legacy-peer-deps && npm run build && cd .. && cp -r client/dist ./public"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

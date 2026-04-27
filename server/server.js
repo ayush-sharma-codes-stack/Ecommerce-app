@@ -44,10 +44,6 @@ app.use(
   })
 );
 
-// Static files for Frontend
-const clientDistPath = path.resolve(__dirname, 'dist');
-app.use(express.static(clientDistPath));
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -58,11 +54,6 @@ app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
-
-// Serve frontend for any other route
-app.get('*', (req, res) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'));
-});
 
 // Error Handlers
 app.use(notFound);

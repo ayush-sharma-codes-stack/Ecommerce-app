@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+// Use a relative path for unified Vercel deployment
+const baseURL = '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL,
   withCredentials: true,
 })
 
@@ -29,7 +32,11 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config
 
-    const isAuthRoute = original.url.includes('/auth/me') || original.url.includes('/auth/refresh-token') || original.url.includes('/auth/login')
+    if (!original.url) return Promise.reject(error)
+
+    const isAuthRoute = original.url.includes('/auth/me') || 
+                       original.url.includes('/auth/refresh-token') || 
+                       original.url.includes('/auth/login')
 
     if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
       if (isRefreshing) {
@@ -47,7 +54,7 @@ api.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const { data } = await axios.post('/api/auth/refresh-token', {}, { withCredentials: true })
+        const { data } = await axios.post(`${baseURL}/auth/refresh-token`, {}, { withCredentials: true })
         const newToken = data.accessToken
         localStorage.setItem('token', newToken)
         processQueue(null, newToken)
@@ -65,7 +72,6 @@ api.interceptors.response.use(
       }
     }
 
-    // If it's an auth route failing with 401, just clear and stop
     if (error.response?.status === 401 && isAuthRoute) {
       localStorage.removeItem('token')
     }

@@ -45,7 +45,7 @@ app.use(
 );
 
 // Static files for Frontend
-const clientDistPath = path.join(__dirname, '../client/dist');
+const clientDistPath = path.join(__dirname, 'dist');
 app.use(express.static(clientDistPath));
 
 // Routes

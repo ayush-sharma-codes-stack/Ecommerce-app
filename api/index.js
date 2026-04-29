@@ -1,5 +1,5 @@
+import 'dotenv/config';
 import express from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -16,7 +16,6 @@ import paymentRoutes from './_internal/routes/payment.routes.js';
 import adminRoutes from './_internal/routes/admin.routes.js';
 import { errorHandler, notFound } from './_internal/middleware/errorHandler.js';
 
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,10 +38,14 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: true, // Allow all origins in production for simplicity, or set your Vercel URL
+    origin: (origin, callback) => {
+      // Allow all origins in production, or restrict to your Vercel URL
+      callback(null, true);
+    },
     credentials: true,
   })
 );
+
 
 // Routes
 app.use('/api/auth', authRoutes);

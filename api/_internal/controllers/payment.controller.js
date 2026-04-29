@@ -4,7 +4,16 @@ import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
 import { sendOrderConfirmationEmail } from '../utils/sendEmail.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+let stripeInstance;
+const getStripe = () => {
+  if (!stripeInstance) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is missing from environment variables');
+    }
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripeInstance;
+};
 
 // @desc    Create Stripe checkout session
 // @route   POST /api/payment/create-checkout-session
@@ -26,14 +35,25 @@ export const createCheckoutSession = async (req, res, next) => {
       quantity: item.qty,
     }));
 
+    // Detect client URL robustly
+    let clientUrl = process.env.CLIENT_URL;
+    if (!clientUrl || clientUrl.includes('localhost')) {
+      const origin = req.get('origin') || req.get('referer');
+      if (origin) {
+        clientUrl = new URL(origin).origin;
+      }
+    }
+    if (!clientUrl) clientUrl = 'http://localhost:5173'; // Fallback
+
+    const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
       customer_email: order.user.email,
       line_items: lineItems,
       metadata: { orderId: order._id.toString(), userId: req.user._id.toString() },
-      success_url: `${process.env.CLIENT_URL}/orders/${order._id}?success=true`,
-      cancel_url: `${process.env.CLIENT_URL}/checkout?cancelled=true`,
+      success_url: `${clientUrl}/orders/${order._id}?success=true`,
+      cancel_url: `${clientUrl}/checkout?cancelled=true`,
     });
 
     // Save session id
@@ -42,15 +62,18 @@ export const createCheckoutSession = async (req, res, next) => {
 
     res.json({ success: true, url: session.url, sessionId: session.id });
   } catch (err) {
+    console.error('Stripe Session Error:', err.message);
     next(err);
   }
 };
+
 
 // @desc    Stripe webhook
 // @route   POST /api/payment/webhook
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
+  const stripe = getStripe();
 
   try {
     if (process.env.NODE_ENV === 'development' && (!sig || process.env.STRIPE_WEBHOOK_SECRET === 'whsec_your_webhook_secret')) {
@@ -63,6 +86,7 @@ export const stripeWebhook = async (req, res) => {
     console.error('Webhook signature error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;

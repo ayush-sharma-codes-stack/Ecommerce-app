@@ -116,12 +116,13 @@ export default function OrderDetail() {
           {!order.isPaid && (
             <button
               onClick={async () => {
-                const res = await fetch(`/api/payment/mock-success`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ orderId: order._id })
-                });
-                if (res.ok) window.location.reload();
+                try {
+                  const { default: api } = await import('../services/api');
+                  const res = await api.post(`/payment/mock-success`, { orderId: order._id });
+                  if (res.data.success) window.location.reload();
+                } catch (err) {
+                  console.error(err);
+                }
               }}
               className="mt-4 w-full py-2 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold hover:bg-emerald-500 hover:text-white transition-all">
               ⚡ Simulate Payment Success (Dev Only)

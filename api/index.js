@@ -22,7 +22,14 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-connectDB();
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Stripe webhook needs raw body — mount BEFORE json parser
 import paymentWebhook from './_internal/controllers/payment.controller.js';
@@ -63,9 +70,9 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'production') {
+if (!process.env.VERCEL) {
   app.listen(PORT, () =>
-    console.log(`🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+    console.log(`🚀 Server running on port ${PORT}`)
   );
 }
 export default app;
